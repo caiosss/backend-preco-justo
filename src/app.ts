@@ -16,8 +16,8 @@ const allowedOrigins = corsOrigins.map((o) =>
 
 export const app = express()
 
-// Necessário atrás do ngrok/proxy para o rate limit identificar o IP real
-app.set('trust proxy', 1)
+// Confia em proxies locais (ngrok, vite preview, rede do Docker) para ler o IP real do visitante
+app.set('trust proxy', 'loopback, linklocal, uniquelocal')
 
 app.use(helmet())
 app.use(
