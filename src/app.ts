@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import { corsOrigins } from './config/env.js'
 import { pool } from './db/pool.js'
 import { errorHandler, notFound } from './middlewares/errorHandler.js'
+import { agentRoutes } from './modules/agent/agent.routes.js'
 import { authRoutes } from './modules/auth/auth.routes.js'
 import { backupRoutes } from './modules/backup/backup.routes.js'
 
@@ -36,6 +37,7 @@ app.get('/api/health', async (_req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/backup', backupRoutes)
+app.use('/api/agent', agentRoutes)
 
 app.use(notFound)
 app.use(errorHandler)
