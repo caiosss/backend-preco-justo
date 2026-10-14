@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "db:up": "docker compose up -d db",
     "homolog": "docker compose --profile homolog up -d --build",
     "tunnel": "node --env-file-if-exists=.env scripts/tunnel.mjs"
