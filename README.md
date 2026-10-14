@@ -59,7 +59,7 @@ Sem Docker para o túnel, com a API rodando localmente: `npm run tunnel` (usa o 
 | GET | `/api/backup` | Bearer | Último backup `{ backup: { data, dataUpdatedAt, savedAt } \| null }` |
 | PUT | `/api/backup` | Bearer | `{ data }`: salva/substitui o backup |
 | DELETE | `/api/backup` | Bearer | Apaga o backup |
-| POST | `/api/agent/chat` | Bearer | Pergunta ao assistente de IA: `{ consentimento, contexto, historico, pergunta }` → `{ resposta, propostas, acoes }` |
+| POST | `/api/agent/chat` | Bearer | Pergunta ao assistente de IA: `{ contexto, historico, pergunta }` → `{ resposta, propostas, acoes }` |
 
 Erros sempre voltam como `{ "error": "mensagem em português" }`. Login e cadastro têm limite de 30 tentativas a cada 15 minutos por IP. O assistente responde 429 quando um dos limites de uso estoura e 503 quando o agente está fora do ar.
 
