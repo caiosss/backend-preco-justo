@@ -43,7 +43,7 @@ agentRoutes.post(
     }
     if (resposta.status >= 500) throw new HttpError(503, INDISPONIVEL)
 
-    // 2xx e 4xx (corpo inválido, sem consentimento) seguem com a mensagem do agente
+    // 2xx e 4xx (ex.: corpo inválido) seguem com a mensagem do agente
     const corpo: unknown = await resposta.json().catch(() => {
       throw new HttpError(503, INDISPONIVEL)
     })

@@ -6,7 +6,7 @@ import { after, before, describe, test } from 'node:test'
 
 const AGENT_KEY = 'chave-do-agente-de-teste-'.padEnd(40, 'x')
 const INDISPONIVEL = 'O assistente está indisponível agora. Tente de novo em alguns minutos.'
-const PERGUNTA = { consentimento: true, contexto: { tipo: 'servico' }, pergunta: 'posso baixar o buço?' }
+const PERGUNTA = { contexto: { tipo: 'servico' }, pergunta: 'posso baixar o buço?' }
 const RESPOSTA = { resposta: 'Pode, até **R$ 12,41**.', propostas: [], acoes: [] }
 
 // Agente falso (o serviço Python): cada teste define como ele responde
@@ -76,11 +76,11 @@ describe('POST /api/agent/chat', () => {
   })
 
   test('erro 4xx do agente volta com a mensagem dele', async () => {
-    const semConsentimento = { error: 'Para usar o assistente, autorize o envio dos dados da sua ficha.' }
-    comportamento = { status: 403, body: semConsentimento }
-    const r = await perguntar('u-consentimento')
-    assert.equal(r.status, 403)
-    assert.deepEqual(await r.json(), semConsentimento)
+    const corpoInvalido = { error: 'Não consegui ler a pergunta. Atualize o app e tente de novo.' }
+    comportamento = { status: 400, body: corpoInvalido }
+    const r = await perguntar('u-corpo-invalido')
+    assert.equal(r.status, 400)
+    assert.deepEqual(await r.json(), corpoInvalido)
   })
 
   test('erro 5xx do agente vira 503 com mensagem amigável', async () => {
