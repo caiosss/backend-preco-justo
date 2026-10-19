@@ -28,7 +28,8 @@ app.use(
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   }),
 )
-app.use(express.json({ limit: '2mb' }))
+// O histórico de vendas do fecho do dia cresce com o tempo (~150 bytes por registro)
+app.use(express.json({ limit: '5mb' }))
 
 app.get('/api/health', async (_req, res) => {
   await pool.query('SELECT 1')

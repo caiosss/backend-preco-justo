@@ -18,6 +18,8 @@ export const appDataSchema = z.looseObject({
   expenses: z.array(withId).max(500),
   tools: z.array(withId).max(500),
   items: z.array(withId).max(2000),
+  // Fecho do dia (vendas/atendimentos). Backups antigos não têm o campo.
+  sales: z.array(withId).max(20000).default([]),
   dismissedTips: z.array(z.string()).max(500).default([]),
   updatedAt: z.iso.datetime({ offset: true }),
 })
