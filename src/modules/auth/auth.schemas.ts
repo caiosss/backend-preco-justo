@@ -19,3 +19,10 @@ export const loginSchema = z.object({
   email,
   password: z.string({ error: 'Informe a senha.' }).min(1, 'Informe a senha.'),
 })
+
+export const forgotPasswordSchema = z.object({ email })
+
+export const resetPasswordSchema = z.object({
+  token: z.string({ error: 'Link inválido.' }).regex(/^[a-f0-9]{64}$/, 'Link inválido. Peça um novo.'),
+  password: registerSchema.shape.password,
+})

@@ -2,11 +2,12 @@ import { Router } from 'express'
 import { pool } from '../../db/pool.js'
 import { requireAuth, userIdOf } from '../../middlewares/auth.js'
 import { parseBody } from '../../middlewares/validate.js'
+import { mergeAndSave } from '../sync/sync.service.js'
 import { putBackupSchema } from './backup.schemas.js'
 
 /**
- * Backup opcional na nuvem. Os dados vivem no aparelho do empreendedor (RNF06);
- * o app só envia para cá quando ele liga o backup explicitamente.
+ * Rotas do backup das versões antigas do app (antes da sincronização entre aparelhos).
+ * Ficam no ar enquanto houver celular sem atualizar; o app novo usa /api/sync.
  */
 export const backupRoutes = Router()
 
@@ -33,19 +34,12 @@ backupRoutes.get('/', async (req, res) => {
   })
 })
 
+// Versões antigas do app ainda mandam o backup inteiro: junta com o que veio dos outros aparelhos
 backupRoutes.put('/', async (req, res) => {
   const { data } = parseBody(putBackupSchema, req.body)
-  const { rows } = await pool.query<{ updated_at: Date }>(
-    `INSERT INTO backups (user_id, data, client_updated_at)
-     VALUES ($1, $2, $3)
-     ON CONFLICT (user_id) DO UPDATE
-       SET data = EXCLUDED.data,
-           client_updated_at = EXCLUDED.client_updated_at,
-           updated_at = now()
-     RETURNING updated_at`,
-    [userIdOf(req), JSON.stringify(data), data.updatedAt],
-  )
-  res.json({ savedAt: rows[0]!.updated_at.toISOString() })
+  // A versão antiga não sabe o que veio dos outros aparelhos: é sempre um primeiro encontro
+  const { savedAt } = await mergeAndSave(userIdOf(req), data, true)
+  res.json({ savedAt })
 })
 
 backupRoutes.delete('/', async (req, res) => {

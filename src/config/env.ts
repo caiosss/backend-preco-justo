@@ -15,6 +15,11 @@ const envSchema = z
     AGENT_URL: opcional(z.url('AGENT_URL precisa ser uma URL (ex.: http://localhost:8000)')),
     AGENT_KEY: opcional(z.string().min(32, 'AGENT_KEY precisa ter pelo menos 32 caracteres')),
     AGENT_DAILY_LIMIT: z.coerce.number().int().positive().default(100),
+    // Endereço do app (PWA) usado no link de redefinir a senha
+    APP_URL: z.url('APP_URL precisa ser uma URL (ex.: https://precojusto.app)').default('http://localhost:5173'),
+    // E-mail pela API do Resend (o Railway bloqueia SMTP). Sem a chave, o link só aparece no log em desenvolvimento.
+    RESEND_API_KEY: opcional(z.string().min(1)),
+    EMAIL_FROM: z.string().default('Preço Justo <onboarding@resend.dev>'),
   })
   .refine((e) => !e.AGENT_URL || e.AGENT_KEY, {
     message: 'AGENT_KEY é obrigatória quando AGENT_URL está definida',
