@@ -22,6 +22,8 @@ export const loginSchema = z.object({
 
 export const forgotPasswordSchema = z.object({ email })
 
+export const resetByEmailSchema = z.object({ email, password: registerSchema.shape.password })
+
 export const resetPasswordSchema = z.object({
   token: z.string({ error: 'Link inválido.' }).regex(/^[a-f0-9]{64}$/, 'Link inválido. Peça um novo.'),
   password: registerSchema.shape.password,
