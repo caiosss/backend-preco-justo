@@ -74,6 +74,7 @@ Sem Docker para o túnel, com a API rodando localmente: `npm run tunnel` (usa o 
 | GET | `/api/auth/me` | Bearer | Usuário logado |
 | POST | `/api/auth/forgot-password` | — | `{ email }` → `{ ok: true }` (mesma resposta exista ou não a conta) |
 | POST | `/api/auth/reset-password` | — | `{ token, password }` → `{ token, user }` |
+| POST | `/api/auth/change-password` | Bearer | `{ password }` → `{ token, user }`: troca a senha de quem está conectado |
 | GET | `/api/sync/revision` | Bearer | `{ revision \| null }`: o app só baixa tudo quando mudou |
 | GET | `/api/sync` | Bearer | `{ account: { data, revision, savedAt } \| null }` |
 | POST | `/api/sync` | Bearer | `{ data, firstSync? }`: junta com os outros aparelhos e devolve `{ account }` |

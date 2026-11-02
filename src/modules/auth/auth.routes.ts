@@ -2,7 +2,13 @@ import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
 import { requireAuth, userIdOf } from '../../middlewares/auth.js'
 import { parseBody } from '../../middlewares/validate.js'
-import { forgotPasswordSchema, loginSchema, registerSchema, resetPasswordSchema } from './auth.schemas.js'
+import {
+  changePasswordSchema,
+  forgotPasswordSchema,
+  loginSchema,
+  registerSchema,
+  resetPasswordSchema,
+} from './auth.schemas.js'
 import * as auth from './auth.service.js'
 
 export const authRoutes = Router()
@@ -42,6 +48,11 @@ authRoutes.post('/forgot-password', forgotLimiter, async (req, res) => {
 authRoutes.post('/reset-password', authLimiter, async (req, res) => {
   const input = parseBody(resetPasswordSchema, req.body)
   res.json(await auth.resetPassword(input))
+})
+
+authRoutes.post('/change-password', requireAuth, authLimiter, async (req, res) => {
+  const { password } = parseBody(changePasswordSchema, req.body)
+  res.json(await auth.changePassword(userIdOf(req), password))
 })
 
 authRoutes.get('/me', requireAuth, async (req, res) => {

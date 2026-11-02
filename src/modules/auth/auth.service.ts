@@ -135,3 +135,16 @@ export async function resetPassword(input: { token: string; password: string }) 
 
 const escapeHtml = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
+
+/**
+ * Troca a senha de quem já está conectado. Não pede a senha atual: é o caminho para quem esqueceu
+ * e ainda tem a sessão aberta em algum aparelho (enquanto o e-mail de recuperação não está disponível).
+ */
+export async function changePassword(userId: string, password: string) {
+  const hash = await bcrypt.hash(password, 10)
+  const { rows } = await pool.query<UserRow>(`UPDATE users SET password_hash = $1 WHERE id = $2 RETURNING *`, [hash, userId])
+  if (!rows[0]) throw new HttpError(401, 'Conta não encontrada. Entre novamente.')
+  // Links de redefinir pedidos antes deixam de valer
+  await pool.query(`UPDATE password_resets SET used_at = now() WHERE user_id = $1 AND used_at IS NULL`, [userId])
+  return session(rows[0])
+}
