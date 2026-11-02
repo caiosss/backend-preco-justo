@@ -5,6 +5,7 @@ import { parseBody } from '../../middlewares/validate.js'
 import {
   changePasswordSchema,
   forgotPasswordSchema,
+  resetByEmailSchema,
   loginSchema,
   registerSchema,
   resetPasswordSchema,
@@ -43,6 +44,12 @@ authRoutes.post('/forgot-password', forgotLimiter, async (req, res) => {
   const { email } = parseBody(forgotPasswordSchema, req.body)
   await auth.requestPasswordReset(email)
   res.json({ ok: true })
+})
+
+// Sem e-mail disponível: troca a senha direto pelo e-mail da conta (ver resetPasswordByEmail)
+authRoutes.post('/reset-password-direct', forgotLimiter, async (req, res) => {
+  const input = parseBody(resetByEmailSchema, req.body)
+  res.json(await auth.resetPasswordByEmail(input))
 })
 
 authRoutes.post('/reset-password', authLimiter, async (req, res) => {

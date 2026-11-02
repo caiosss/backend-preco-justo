@@ -41,6 +41,10 @@ A migração `002_sync_e_recuperar_senha` roda sozinha ao subir a API. Os dados 
 
 ## Recuperar senha
 
+**Em uso hoje:** `POST /api/auth/reset-password-direct` troca a senha só com o e-mail da conta, sem confirmação. Foi uma decisão do projeto por não haver domínio próprio para enviar e-mail; o risco aceito é que quem souber o e-mail de alguém consegue trocar a senha dessa conta. Fica limitado a 5 tentativas a cada 15 minutos por IP.
+
+O fluxo por e-mail abaixo continua pronto para quando houver um domínio verificado:
+
 `POST /api/auth/forgot-password` envia um link (vale 1 hora, uso único) para `APP_URL/redefinir-senha?token=…`. O e-mail sai pela API do [Resend](https://resend.com) (`RESEND_API_KEY`, `EMAIL_FROM` de um domínio verificado). Sem a chave, em desenvolvimento o link aparece no log da API.
 
 ## Rodando tudo no Docker
@@ -74,6 +78,7 @@ Sem Docker para o túnel, com a API rodando localmente: `npm run tunnel` (usa o 
 | GET | `/api/auth/me` | Bearer | Usuário logado |
 | POST | `/api/auth/forgot-password` | — | `{ email }` → `{ ok: true }` (mesma resposta exista ou não a conta) |
 | POST | `/api/auth/reset-password` | — | `{ token, password }` → `{ token, user }` |
+| POST | `/api/auth/reset-password-direct` | — | `{ email, password }` → `{ token, user }`: troca a senha sem confirmação por e-mail (5 a cada 15 min por IP) |
 | POST | `/api/auth/change-password` | Bearer | `{ password }` → `{ token, user }`: troca a senha de quem está conectado |
 | GET | `/api/sync/revision` | Bearer | `{ revision \| null }`: o app só baixa tudo quando mudou |
 | GET | `/api/sync` | Bearer | `{ account: { data, revision, savedAt } \| null }` |

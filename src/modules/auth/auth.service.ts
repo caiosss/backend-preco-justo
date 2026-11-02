@@ -54,6 +54,17 @@ export async function findById(id: string): Promise<PublicUser> {
   return toPublic(rows[0])
 }
 
+/**
+ * Troca a senha só com o e-mail, sem confirmação. Decisão do projeto: sem domínio próprio não há como
+ * enviar e-mail, então qualquer pessoa que saiba o e-mail consegue trocar a senha da conta.
+ * O limite de tentativas por IP (auth.routes.ts) é a única barreira.
+ */
+export async function resetPasswordByEmail(input: { email: string; password: string }) {
+  const { rows } = await pool.query<{ id: string }>(`SELECT id FROM users WHERE lower(email) = $1`, [input.email])
+  if (!rows[0]) throw new HttpError(404, 'Não encontramos uma conta com este e-mail.')
+  return changePassword(rows[0].id, input.password)
+}
+
 /** Link de redefinir a senha vale 1 hora e só pode ser usado uma vez. */
 const RESET_TTL_MS = 60 * 60 * 1000
 /** Um e-mail a cada 2 minutos por conta, para ninguém lotar a caixa de entrada de outra pessoa. */
