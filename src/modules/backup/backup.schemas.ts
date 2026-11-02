@@ -22,6 +22,10 @@ export const appDataSchema = z.looseObject({
   sales: z.array(withId).max(20000).default([]),
   dismissedTips: z.array(z.string()).max(500).default([]),
   updatedAt: z.iso.datetime({ offset: true }),
+  // Sincronização entre aparelhos: hora da última mudança de cada registro e das exclusões.
+  // Versões antigas do app não mandam esses campos.
+  clock: z.record(z.string().max(200), z.iso.datetime({ offset: true })).optional(),
+  deleted: z.record(z.string().max(200), z.iso.datetime({ offset: true })).optional(),
 })
 
 export const putBackupSchema = z.object({ data: appDataSchema })

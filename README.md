@@ -1,7 +1,7 @@
 # Preço Justo — Backend
 
-API do Preço Justo: contas de usuário (JWT) e **backup opcional** dos dados do app.
-Os cálculos rodam no celular (PWA offline); o servidor só guarda uma cópia quando o empreendedor liga o backup.
+API do Preço Justo: contas de usuário (JWT), recuperação de senha por e-mail e **sincronização** dos dados do app entre os aparelhos da conta.
+Os cálculos rodam no aparelho (PWA offline); o servidor guarda os dados da conta e junta o que cada aparelho mudou.
 
 **Stack:** Node.js 24 + TypeScript · Express 5 · PostgreSQL 17 (Docker) · JWT · Zod · ngrok (só homologação)
 
@@ -26,6 +26,22 @@ Testes: `npm test` (Node test runner via `tsx`; não precisa de banco).
 - o corpo e a resposta seguem o [contrato do agente](https://github.com/CAUTATAU/agente-preco-justo#contrato-da-api).
 
 Para rodar junto, suba o agente na porta 8000 (veja o README de lá). No `.env` daqui, coloque `AGENT_URL=http://localhost:8000` e a mesma `AGENT_KEY` do agente. Sem `AGENT_URL`, a rota responde 503 e o resto da API funciona normalmente.
+
+## Sincronização entre aparelhos
+
+Cada conta tem um pacote de dados (tabela `backups`, coluna `data` em JSONB) com um número de `revision`.
+O app envia o pacote do aparelho em `POST /api/sync` e o servidor junta com o que já está na conta (`src/modules/sync/merge.ts`):
+
+- cada registro tem a hora da última mudança em `clock` e cada exclusão fica em `deleted`; em conflito vence a mudança mais recente;
+- registros com ids diferentes se somam: é assim que o celular e o PC que nunca sincronizaram viram uma loja só;
+- na primeira sincronização de um aparelho (`firstSync`), o negócio que vale é o do lado com mais coisa cadastrada, para o cadastro de teste de um aparelho novo não apagar o negócio em uso;
+- `PUT /api/backup` (versões antigas do app) também passa pela junção, então celulares ainda não atualizados não apagam o que veio dos outros.
+
+A migração `002_sync_e_recuperar_senha` roda sozinha ao subir a API. Os dados que só existiam no celular (backup desligado) chegam à conta quando o celular abre a versão nova do app.
+
+## Recuperar senha
+
+`POST /api/auth/forgot-password` envia um link (vale 1 hora, uso único) para `APP_URL/redefinir-senha?token=…`. O e-mail sai pela API do [Resend](https://resend.com) (`RESEND_API_KEY`, `EMAIL_FROM` de um domínio verificado). Sem a chave, em desenvolvimento o link aparece no log da API.
 
 ## Rodando tudo no Docker
 
@@ -56,12 +72,17 @@ Sem Docker para o túnel, com a API rodando localmente: `npm run tunnel` (usa o 
 | POST | `/api/auth/register` | — | `{ name, email, password }` → `{ token, user }` |
 | POST | `/api/auth/login` | — | `{ email, password }` → `{ token, user }` |
 | GET | `/api/auth/me` | Bearer | Usuário logado |
-| GET | `/api/backup` | Bearer | Último backup `{ backup: { data, dataUpdatedAt, savedAt } \| null }` |
-| PUT | `/api/backup` | Bearer | `{ data }`: salva/substitui o backup |
-| DELETE | `/api/backup` | Bearer | Apaga o backup |
+| POST | `/api/auth/forgot-password` | — | `{ email }` → `{ ok: true }` (mesma resposta exista ou não a conta) |
+| POST | `/api/auth/reset-password` | — | `{ token, password }` → `{ token, user }` |
+| GET | `/api/sync/revision` | Bearer | `{ revision \| null }`: o app só baixa tudo quando mudou |
+| GET | `/api/sync` | Bearer | `{ account: { data, revision, savedAt } \| null }` |
+| POST | `/api/sync` | Bearer | `{ data, firstSync? }`: junta com os outros aparelhos e devolve `{ account }` |
+| GET | `/api/backup` | Bearer | Versões antigas do app: `{ backup: { data, dataUpdatedAt, savedAt } \| null }` |
+| PUT | `/api/backup` | Bearer | Versões antigas do app: `{ data }`, junta com os outros aparelhos |
+| DELETE | `/api/backup` | Bearer | Versões antigas do app: apaga os dados da conta |
 | POST | `/api/agent/chat` | Bearer | Pergunta ao assistente de IA: `{ contexto, historico, pergunta }` → `{ resposta, propostas, acoes }` |
 
-Erros sempre voltam como `{ "error": "mensagem em português" }`. Login e cadastro têm limite de 30 tentativas a cada 15 minutos por IP. O assistente responde 429 quando um dos limites de uso estoura e 503 quando o agente está fora do ar.
+Erros sempre voltam como `{ "error": "mensagem em português" }`. Login, cadastro e redefinir senha têm limite de 30 tentativas a cada 15 minutos por IP; pedir o link, 5 a cada 15 minutos (e um e-mail a cada 2 minutos por conta). O assistente responde 429 quando um dos limites de uso estoura e 503 quando o agente está fora do ar.
 
 ## Estrutura
 
@@ -72,7 +93,8 @@ src/
   config/env.ts          # variáveis de ambiente validadas com Zod
   db/                    # pool do Postgres e migrações
   middlewares/           # auth JWT, validação, tratamento de erros
-  modules/auth/          # cadastro, login, /me
-  modules/backup/        # backup dos dados do app (JSONB)
+  modules/auth/          # cadastro, login, /me, recuperar senha
+  modules/sync/          # sincronização entre aparelhos (junção em merge.ts)
+  modules/backup/        # rotas das versões antigas do app
   modules/agent/         # repasse ao assistente de IA, com os limites de uso
 ```

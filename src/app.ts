@@ -7,6 +7,7 @@ import { errorHandler, notFound } from './middlewares/errorHandler.js'
 import { agentRoutes } from './modules/agent/agent.routes.js'
 import { authRoutes } from './modules/auth/auth.routes.js'
 import { backupRoutes } from './modules/backup/backup.routes.js'
+import { syncRoutes } from './modules/sync/sync.routes.js'
 
 /** "https://*.vercel.app" vira regex, para aceitar os domínios de preview da Vercel. */
 const allowedOrigins = corsOrigins.map((o) =>
@@ -38,6 +39,7 @@ app.get('/api/health', async (_req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/backup', backupRoutes)
+app.use('/api/sync', syncRoutes)
 app.use('/api/agent', agentRoutes)
 
 app.use(notFound)

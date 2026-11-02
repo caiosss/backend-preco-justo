@@ -2,7 +2,7 @@ import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
 import { requireAuth, userIdOf } from '../../middlewares/auth.js'
 import { parseBody } from '../../middlewares/validate.js'
-import { loginSchema, registerSchema } from './auth.schemas.js'
+import { forgotPasswordSchema, loginSchema, registerSchema, resetPasswordSchema } from './auth.schemas.js'
 import * as auth from './auth.service.js'
 
 export const authRoutes = Router()
@@ -23,6 +23,25 @@ authRoutes.post('/register', authLimiter, async (req, res) => {
 authRoutes.post('/login', authLimiter, async (req, res) => {
   const input = parseBody(loginSchema, req.body)
   res.json(await auth.login(input))
+})
+
+const forgotLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Muitos pedidos. Aguarde alguns minutos e tente de novo.' },
+})
+
+authRoutes.post('/forgot-password', forgotLimiter, async (req, res) => {
+  const { email } = parseBody(forgotPasswordSchema, req.body)
+  await auth.requestPasswordReset(email)
+  res.json({ ok: true })
+})
+
+authRoutes.post('/reset-password', authLimiter, async (req, res) => {
+  const input = parseBody(resetPasswordSchema, req.body)
+  res.json(await auth.resetPassword(input))
 })
 
 authRoutes.get('/me', requireAuth, async (req, res) => {
