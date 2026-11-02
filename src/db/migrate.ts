@@ -43,6 +43,12 @@ const migrations: { id: string; sql: string }[] = [
       CREATE INDEX IF NOT EXISTS password_resets_user ON password_resets (user_id, created_at DESC);
     `,
   },
+  {
+    // Cópia dos dados como estavam antes da primeira junção entre aparelhos, para conferência.
+    // Roda antes da API aceitar requisições. Pode ser apagada quando todos estiverem sincronizando bem.
+    id: '003_copia_antes_do_sync',
+    sql: `CREATE TABLE IF NOT EXISTS backups_antes_do_sync AS SELECT * FROM backups;`,
+  },
 ]
 
 export async function migrate(retries = 10): Promise<void> {
