@@ -49,6 +49,30 @@ const migrations: { id: string; sql: string }[] = [
     id: '003_copia_antes_do_sync',
     sql: `CREATE TABLE IF NOT EXISTS backups_antes_do_sync AS SELECT * FROM backups;`,
   },
+  {
+    // Conta de administrador (painel de uso) e os eventos de uso do app que alimentam o painel.
+    // Os eventos não guardam nada digitado: só a tela, o botão tocado e mensagens de erro do próprio app.
+    id: '004_admin_e_eventos_de_uso',
+    sql: `
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'user';
+
+      CREATE TABLE IF NOT EXISTS usage_events (
+        id         bigserial PRIMARY KEY,
+        user_id    uuid REFERENCES users(id) ON DELETE SET NULL,
+        session_id text NOT NULL,
+        type       text NOT NULL,
+        path       text NOT NULL DEFAULT '',
+        area       text NOT NULL DEFAULT '',
+        target     text,
+        value      double precision,
+        meta       jsonb NOT NULL DEFAULT '{}',
+        created_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS usage_events_created ON usage_events (created_at DESC);
+      CREATE INDEX IF NOT EXISTS usage_events_type_created ON usage_events (type, created_at DESC);
+      CREATE INDEX IF NOT EXISTS usage_events_session ON usage_events (session_id, created_at);
+    `,
+  },
 ]
 
 export async function migrate(retries = 10): Promise<void> {

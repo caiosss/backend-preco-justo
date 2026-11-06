@@ -2,9 +2,11 @@ import { app } from './app.js'
 import { env } from './config/env.js'
 import { migrate } from './db/migrate.js'
 import { pool } from './db/pool.js'
+import { ensureAdmin } from './modules/admin/seedAdmin.js'
 
 async function main() {
   await migrate()
+  await ensureAdmin()
   const server = app.listen(env.PORT, () => {
     console.log(`🚀 API Preço Justo rodando em http://localhost:${env.PORT}`)
   })

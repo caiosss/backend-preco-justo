@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit'
 import { env } from '../../config/env.js'
 import { requireAuth, userIdOf } from '../../middlewares/auth.js'
 import { HttpError } from '../../utils/HttpError.js'
+import { recordServerEvent } from '../events/events.service.js'
 
 /**
  * Assistente de IA: repassa a pergunta ao serviço do agente (repo agente-preco-justo) pela rede
@@ -47,6 +48,7 @@ agentRoutes.post(
     const corpo: unknown = await resposta.json().catch(() => {
       throw new HttpError(503, INDISPONIVEL)
     })
+    if (resposta.ok) recordServerEvent(userIdOf(req), 'assistant_question')
     res.status(resposta.status).json(corpo)
   },
 )

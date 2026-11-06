@@ -47,6 +47,16 @@ O fluxo por e-mail abaixo continua pronto para quando houver um domínio verific
 
 `POST /api/auth/forgot-password` envia um link (vale 1 hora, uso único) para `APP_URL/redefinir-senha?token=…`. O e-mail sai pela API do [Resend](https://resend.com) (`RESEND_API_KEY`, `EMAIL_FROM` de um domínio verificado). Sem a chave, em desenvolvimento o link aparece no log da API.
 
+## Painel do administrador
+
+A conta `ADMIN_EMAIL` (padrão `admin@precojusto.com`) é criada ao subir a API (`src/modules/admin/seedAdmin.ts`). Sem `ADMIN_PASSWORD`, vale a senha inicial combinada no projeto (só o hash fica no código). Essa conta não troca a senha pelo "esqueci minha senha" e, no app, entra direto em `/admin`.
+
+O painel junta duas fontes:
+- **o que o sistema já guardava**: contas, negócios, cadastros, vendas e a hora de cada mudança salva (`clock` dos dados), que dá o histórico de uso desde o começo;
+- **eventos de uso** (`usage_events`, migração `004`): telas, tempo ativo por área, botões tocados, toques repetidos, avisos de erro e ações concluídas. O app manda em lotes para `POST /api/events`; nada do que a pessoa digita é enviado.
+
+`GET /api/admin/stream` é um canal Server-Sent Events: cada evento novo chega ao painel na hora. A resposta vai com `X-Accel-Buffering: no` para o nginx do front não segurar em buffer.
+
 ## Rodando tudo no Docker
 
 ```bash
@@ -87,6 +97,10 @@ Sem Docker para o túnel, com a API rodando localmente: `npm run tunnel` (usa o 
 | PUT | `/api/backup` | Bearer | Versões antigas do app: `{ data }`, junta com os outros aparelhos |
 | DELETE | `/api/backup` | Bearer | Versões antigas do app: apaga os dados da conta |
 | POST | `/api/agent/chat` | Bearer | Pergunta ao assistente de IA: `{ contexto, historico, pergunta }` → `{ resposta, propostas, acoes }` |
+| POST | `/api/events` | opcional | `{ sessionId, events[] }` → 204 (eventos de uso do app) |
+| GET | `/api/admin/overview?days=7\|30\|90` | Admin | Números do painel |
+| GET | `/api/admin/stream` | Admin | Eventos ao vivo (SSE) |
+| POST | `/api/admin/forget-session` | Admin | Tira das estatísticas a visita anônima do admin à tela de entrar |
 
 Erros sempre voltam como `{ "error": "mensagem em português" }`. Login, cadastro e redefinir senha têm limite de 30 tentativas a cada 15 minutos por IP; pedir o link, 5 a cada 15 minutos (e um e-mail a cada 2 minutos por conta). O assistente responde 429 quando um dos limites de uso estoura e 503 quando o agente está fora do ar.
 

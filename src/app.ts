@@ -4,9 +4,11 @@ import helmet from 'helmet'
 import { corsOrigins } from './config/env.js'
 import { pool } from './db/pool.js'
 import { errorHandler, notFound } from './middlewares/errorHandler.js'
+import { adminRoutes } from './modules/admin/admin.routes.js'
 import { agentRoutes } from './modules/agent/agent.routes.js'
 import { authRoutes } from './modules/auth/auth.routes.js'
 import { backupRoutes } from './modules/backup/backup.routes.js'
+import { eventsRoutes } from './modules/events/events.routes.js'
 import { syncRoutes } from './modules/sync/sync.routes.js'
 
 /** "https://*.vercel.app" vira regex, para aceitar os domínios de preview da Vercel. */
@@ -41,6 +43,8 @@ app.use('/api/auth', authRoutes)
 app.use('/api/backup', backupRoutes)
 app.use('/api/sync', syncRoutes)
 app.use('/api/agent', agentRoutes)
+app.use('/api/events', eventsRoutes)
+app.use('/api/admin', adminRoutes)
 
 app.use(notFound)
 app.use(errorHandler)

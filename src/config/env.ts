@@ -20,6 +20,10 @@ const envSchema = z
     // E-mail pela API do Resend (o Railway bloqueia SMTP). Sem a chave, o link só aparece no log em desenvolvimento.
     RESEND_API_KEY: opcional(z.string().min(1)),
     EMAIL_FROM: z.string().default('Preço Justo <onboarding@resend.dev>'),
+    // Conta de administrador (painel de uso), criada ao subir a API se ainda não existir.
+    // Sem ADMIN_PASSWORD, a senha inicial é a combinada no projeto (só o hash fica no código).
+    ADMIN_EMAIL: z.email().default('admin@precojusto.com'),
+    ADMIN_PASSWORD: opcional(z.string().min(8, 'ADMIN_PASSWORD precisa ter pelo menos 8 caracteres')),
   })
   .refine((e) => !e.AGENT_URL || e.AGENT_KEY, {
     message: 'AGENT_KEY é obrigatória quando AGENT_URL está definida',

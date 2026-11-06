@@ -1,4 +1,5 @@
 import { pool } from '../../db/pool.js'
+import { notifyDataChanged } from '../events/events.service.js'
 import { mergeDocs, type SyncDoc } from './merge.js'
 
 /** Dados da conta, compartilhados por todos os aparelhos em que ela entra. */
@@ -68,6 +69,7 @@ export async function mergeAndSave(userId: string, incoming: SyncDoc, firstSync:
       saved = result.rows[0]!
     }
     await client.query('COMMIT')
+    if (saved !== current) notifyDataChanged()
     return toAccountData(saved)
   } catch (err) {
     await client.query('ROLLBACK')
