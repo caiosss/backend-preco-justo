@@ -5,16 +5,19 @@ import { pool } from '../../db/pool.js'
 import { HttpError } from '../../utils/HttpError.js'
 import { signToken } from '../../utils/jwt.js'
 import { sendMail } from '../../utils/mail.js'
+import { recordServerEvent } from '../events/events.service.js'
 
-type UserRow = { id: string; name: string; email: string; password_hash: string; created_at: Date }
+type Role = 'user' | 'admin'
+type UserRow = { id: string; name: string; email: string; password_hash: string; created_at: Date; role: Role }
 
-export type PublicUser = { id: string; name: string; email: string; createdAt: string }
+export type PublicUser = { id: string; name: string; email: string; createdAt: string; role: Role }
 
 const toPublic = (u: UserRow): PublicUser => ({
   id: u.id,
   name: u.name,
   email: u.email,
   createdAt: u.created_at.toISOString(),
+  role: u.role === 'admin' ? 'admin' : 'user',
 })
 
 const session = (u: UserRow) => ({
@@ -29,6 +32,7 @@ export async function register(input: { name: string; email: string; password: s
       `INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING *`,
       [input.name, input.email, hash],
     )
+    recordServerEvent(rows[0]!.id, 'register')
     return session(rows[0]!)
   } catch (err) {
     if ((err as { code?: string }).code === '23505') {
@@ -45,6 +49,7 @@ export async function login(input: { email: string; password: string }) {
   const user = rows[0]
   const ok = user ? await bcrypt.compare(input.password, user.password_hash) : false
   if (!user || !ok) throw new HttpError(401, 'E-mail ou senha incorretos.')
+  recordServerEvent(user.id, 'login')
   return session(user)
 }
 
@@ -60,8 +65,11 @@ export async function findById(id: string): Promise<PublicUser> {
  * O limite de tentativas por IP (auth.routes.ts) é a única barreira.
  */
 export async function resetPasswordByEmail(input: { email: string; password: string }) {
-  const { rows } = await pool.query<{ id: string }>(`SELECT id FROM users WHERE lower(email) = $1`, [input.email])
+  const { rows } = await pool.query<{ id: string; role: Role }>(`SELECT id, role FROM users WHERE lower(email) = $1`, [input.email])
   if (!rows[0]) throw new HttpError(404, 'Não encontramos uma conta com este e-mail.')
+  // Sem confirmação por e-mail, qualquer um trocaria a senha do admin: ele só troca estando conectado
+  if (rows[0].role === 'admin') throw new HttpError(403, 'A senha desta conta só pode ser trocada por quem está conectado nela.')
+  recordServerEvent(rows[0].id, 'password_reset')
   return changePassword(rows[0].id, input.password)
 }
 
@@ -79,7 +87,8 @@ const sha256 = (value: string) => createHash('sha256').update(value).digest('hex
 export async function requestPasswordReset(email: string): Promise<void> {
   const { rows } = await pool.query<UserRow>(`SELECT * FROM users WHERE lower(email) = $1`, [email])
   const user = rows[0]
-  if (!user) return
+  // O e-mail do admin é de um domínio que não existe
+  if (!user || user.role === 'admin') return
 
   const recent = await pool.query(
     `SELECT 1 FROM password_resets WHERE user_id = $1 AND created_at > now() - make_interval(secs => $2)`,
